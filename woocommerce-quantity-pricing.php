@@ -3,8 +3,8 @@
 Plugin Name: WooCommerce Quantity Pricing
 Plugin URI: http://yourwebsite.com/
 Description: Adds quantity-based pricing to WooCommerce products.
-Version: 1.0
-Author: Your Name
+Version: 1.1
+Author: TouchVapes
 Author URI: http://yourwebsite.com/
 */
 
@@ -24,9 +24,14 @@ add_filter('woocommerce_product_data_tabs', 'custom_product_tabs');
 function custom_product_panels() {
     global $post;
 
+    $enable_custom_prices = get_post_meta($post->ID, 'enable_custom_prices', true);
     $custom_price_table = get_post_meta($post->ID, 'custom_price_table', true);
 
     echo '<div id="quantity_pricing_data" class="panel woocommerce_options_panel hidden">';
+    echo '<p class="form-field">';
+    echo '<label for="enable_custom_prices">Aplicar precios por cantidad</label>';
+    echo '<input type="checkbox" name="enable_custom_prices" id="enable_custom_prices" value="1" ' . checked($enable_custom_prices, true, false) . '>';
+    echo '</p>';
     echo '<table class="form-table" id="quantity_pricing_table">';
     echo '<thead><tr><th>Desde</th><th>Hasta</th><th>Precio</th><th>Acción</th></tr></thead>';
     echo '<tbody>';
@@ -40,14 +45,6 @@ function custom_product_panels() {
             echo '<td><button type="button" class="remove_row_button button">Eliminar</button></td>';
             echo '</tr>';
         }
-    } else {
-        // Mostrar una fila vacía por defecto
-        echo '<tr>';
-        echo '<td><input type="text" name="custom_price_table[0][from_quantity]"></td>';
-        echo '<td><input type="text" name="custom_price_table[0][to_quantity]"></td>';
-        echo '<td><input type="text" name="custom_price_table[0][price]"></td>';
-        echo '<td><button type="button" class="remove_row_button button">Eliminar</button></td>';
-        echo '</tr>';
     }
 
     echo '</tbody></table>';
@@ -57,8 +54,15 @@ function custom_product_panels() {
 
 add_action('woocommerce_product_data_panels', 'custom_product_panels');
 
-// Guardar los valores del campo de tabla de precios cuando se guarda el producto
+// Guardar los valores del campo de tabla de precios y la opción de habilitar/deshabilitar cuando se guarda el producto
 function save_custom_price_field($post_id) {
+    if (isset($_POST['enable_custom_prices'])) {
+        $enable_custom_prices = $_POST['enable_custom_prices'];
+        update_post_meta($post_id, 'enable_custom_prices', $enable_custom_prices);
+    } else {
+        delete_post_meta($post_id, 'enable_custom_prices');
+    }
+
     if (isset($_POST['custom_price_table'])) {
         $custom_price_table = $_POST['custom_price_table'];
         $new_custom_price_table = array();
@@ -98,9 +102,10 @@ function adjust_price_based_on_quantity($cart) {
             }
         }
 
+        $enable_custom_prices = get_post_meta($product_id, 'enable_custom_prices', true);
         $custom_price_table = get_post_meta($product_id, 'custom_price_table', true);
 
-        if (!empty($custom_price_table)) {
+        if ($enable_custom_prices && !empty($custom_price_table)) {
             $best_price = null;
 
             foreach ($custom_price_table as $row) {
@@ -123,9 +128,10 @@ add_action('woocommerce_before_calculate_totals', 'adjust_price_based_on_quantit
 function display_quantity_pricing_table() {
     global $product;
 
+    $enable_custom_prices = get_post_meta($product->get_id(), 'enable_custom_prices', true);
     $custom_price_table = get_post_meta($product->get_id(), 'custom_price_table', true);
 
-    if (!empty($custom_price_table)) {
+    if ($enable_custom_prices && !empty($custom_price_table)) {
         echo '<div class="bulk_table">';
         echo '<div class="wdp_pricing_table_caption" style="color: #1e73be; text-align: center; font-weight: bold; margin-bottom: 10px;">En base a la cantidad obtienes mejor precio.</div>';
         echo '<table class="wdp_pricing_table">';
@@ -170,17 +176,21 @@ function display_quantity_pricing_table() {
 function display_quantity_pricing_table_after_add_to_cart() {
     global $product;
 
-    echo '<div class="woocommerce-quantity-pricing">';
-    echo '<div class="wdp_pricing_table_container">';
+    $enable_custom_prices = get_post_meta($product->get_id(), 'enable_custom_prices', true);
 
-    // Mostrar el botón "Añadir al carrito"
-    do_action('woocommerce_after_add_to_cart_button');
+    if ($enable_custom_prices) {
+        echo '<div class="woocommerce-quantity-pricing">';
+        echo '<div class="wdp_pricing_table_container">';
 
-    // Mostrar la tabla de precios por cantidad
-    display_quantity_pricing_table();
+        // Mostrar el botón "Añadir al carrito"
+        do_action('woocommerce_after_add_to_cart_button');
 
-    echo '</div>';
-    echo '</div>';
+        // Mostrar la tabla de precios por cantidad
+        display_quantity_pricing_table();
+
+        echo '</div>';
+        echo '</div>';
+    }
 }
 add_action('woocommerce_after_add_to_cart_form', 'display_quantity_pricing_table_after_add_to_cart');
 
@@ -195,9 +205,9 @@ function quantity_pricing_admin_scripts() {
                     rowId = Date.now();
 
                 rowHtml = \'<tr>\' +
-                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][from_quantity]"></td>\' +
-                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][to_quantity]"></td>\' +
-                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][price]"></td>\' +
+                    \'<td><input type="text" name="custom_price_table[' + rowId + '][from_quantity]"></td>\' +
+                    \'<td><input type="text" name="custom_price_table[' + rowId + '][to_quantity]"></td>\' +
+                    \'<td><input type="text" name="custom_price_table[' + rowId + '][price]"></td>\' +
                     \'<td><button type="button" class="remove_row_button button">Eliminar</button></td>\' +
                     \'</tr>\';
                 
@@ -252,9 +262,10 @@ add_action('wp_head', 'quantity_pricing_styles');
 
 
 function adjust_price_html($price, $product) {
+    $enable_custom_prices = get_post_meta($product->get_id(), 'enable_custom_prices', true);
     $custom_price_table = get_post_meta($product->get_id(), 'custom_price_table', true);
 
-    if (!empty($custom_price_table)) {
+    if ($enable_custom_prices && !empty($custom_price_table)) {
         // ordenar el array por el campo de precio
         usort($custom_price_table, function($a, $b) {
             return $a['price'] - $b['price'];
