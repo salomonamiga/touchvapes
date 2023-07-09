@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce Quantity Pricing
 Plugin URI: http://yourwebsite.com/
 Description: Adds quantity-based pricing to WooCommerce products.
-Version: 1.1 
+Version: 1.3
 Author: TouchVapes
 Author URI: http://yourwebsite.com/
 */
