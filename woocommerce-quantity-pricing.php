@@ -8,8 +8,7 @@ Author: TouchVapes
 Author URI: http://yourwebsite.com/
 */
 
-// Add the quantity pricing tab
-// This function adds a new tab to the product data meta box when editing products
+// Añadir la pestaña de precios por cantidad
 function custom_product_tabs($tabs)
 {
     $tabs['quantity_pricing'] = array(
@@ -18,7 +17,7 @@ function custom_product_tabs($tabs)
         'class' => array('show_if_simple', 'show_if_variable', 'show_if_grouped'),
     );
 
-    // New tab for special user prices
+    // Nueva pestaña para los precios especiales de usuarios
     $tabs['user_prices'] = array(
         'label' => __('Precios especiales de usuarios', 'woocommerce'),
         'target' => 'user_prices_data',
@@ -29,8 +28,9 @@ function custom_product_tabs($tabs)
 }
 add_filter('woocommerce_product_data_tabs', 'custom_product_tabs');
 
-// Content of the quantity pricing tab and special user prices tab
-// This function generates the content of the new tab added above
+
+// Contenido de la pestaña de precios por cantidad y precios especiales de usuarios
+// Contenido de la pestaña de precios por cantidad y precios especiales de usuarios
 function custom_product_panels()
 {
     global $post;
@@ -38,7 +38,7 @@ function custom_product_panels()
     $custom_price_table = get_post_meta($post->ID, 'custom_price_table', true);
     $user_prices_table = get_post_meta($post->ID, 'user_prices_table', true);
 
-    // Content of the quantity pricing tab
+    // Contenido de la pestaña de precios por cantidad
     echo '<div id="quantity_pricing_data" class="panel woocommerce_options_panel hidden">';
     echo '<table class="form-table" id="quantity_pricing_table">';
     echo '<thead><tr><th>Desde</th><th>Hasta</th><th>Precio</th><th>Acción</th></tr></thead>';
@@ -54,7 +54,7 @@ function custom_product_panels()
             echo '</tr>';
         }
     } else {
-        // Show an empty row by default
+        // Mostrar una fila vacía por defecto
         echo '<tr>';
         echo '<td><input type="text" name="custom_price_table[0][from_quantity]"></td>';
         echo '<td><input type="text" name="custom_price_table[0][to_quantity]"></td>';
@@ -67,7 +67,7 @@ function custom_product_panels()
     echo '<button type="button" class="add_row_button_qty button">Agregar Fila</button>';
     echo '</div>';
 
-    // Content of the special user prices tab
+    // Contenido de la pestaña de precios especiales de usuarios
     echo '<div id="user_prices_data" class="panel woocommerce_options_panel hidden">';
     echo '<table class="form-table" id="user_prices_table">';
     echo '<thead><tr><th>Usuario</th><th>Precio especial</th><th>Acción</th></tr></thead>';
@@ -82,7 +82,7 @@ function custom_product_panels()
             echo '</tr>';
         }
     } else {
-        // Show an empty row by default
+        // Mostrar una fila vacía por defecto
         echo '<tr>';
         echo '<td><input type="text" name="user_prices_table[0][user_email]"></td>';
         echo '<td><input type="text" name="user_prices_table[0][price]"></td>';
@@ -94,11 +94,13 @@ function custom_product_panels()
     echo '<button type="button" class="add_row_button_user button">Agregar Fila</button>';
     echo '</div>';
 }
+
 add_action('woocommerce_product_data_panels', 'custom_product_panels');
 
 
-// Save the values of the price table field when the product is saved
-// This function saves the special user prices when the product is saved
+
+
+// Guardar los valores del campo de tabla de precios cuando se guarda el producto
 function save_user_prices_field($post_id)
 {
     if (isset($_POST['user_prices_table'])) {
@@ -124,8 +126,9 @@ function save_user_prices_field($post_id)
 }
 add_action('woocommerce_process_product_meta', 'save_user_prices_field');
 
-// Adjust the price in the cart according to the total product quantity and the price table
-// This function adjusts the price of the product in the cart based on the quantity of the product and the price table
+
+
+// Ajustar el precio en el carrito de acuerdo con la cantidad total de producto y la tabla de precios
 function adjust_price_based_on_quantity($cart)
 {
     foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
@@ -160,9 +163,6 @@ function adjust_price_based_on_quantity($cart)
 }
 add_action('woocommerce_before_calculate_totals', 'adjust_price_based_on_quantity');
 
-
-// Adjust the price in the cart according to the user and the price table
-// This function adjusts the price of the product in the cart based on the user and the price table
 function adjust_price_based_on_user($cart)
 {
     foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
@@ -186,9 +186,7 @@ function adjust_price_based_on_user($cart)
 add_action('woocommerce_before_calculate_totals', 'adjust_price_based_on_user');
 
 
-
-// Display quantity pricing table on the front-end
-// This function displays the quantity pricing table on the product page
+// Mostrar tabla de precios por cantidad en el front-end
 function display_quantity_pricing_table()
 {
     global $product;
@@ -196,8 +194,115 @@ function display_quantity_pricing_table()
     $custom_price_table = get_post_meta($product->get_id(), 'custom_price_table', true);
 
     if (!empty($custom_price_table)) {
-        // Add the styles here
-        echo '<style>
+        echo '<div class="bulk_table">';
+        echo '<div class="wdp_pricing_table_caption" style="color: #1e73be; text-align: center; font-weight: bold; margin-bottom: 10px;">En base a la cantidad obtienes mejor precio.</div>';
+        echo '<table class="wdp_pricing_table">';
+        echo '<thead>';
+        echo '<tr>';
+        echo '<th>Piezas</th>';
+        echo '<th>Precio Pieza</th>';
+        echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
+
+        foreach ($custom_price_table as $row) {
+            $from_quantity = $row['from_quantity'];
+            $to_quantity = $row['to_quantity'];
+
+            if ($to_quantity === '') {
+                $to_quantity = '+';
+            }
+
+            $range = $from_quantity !== $to_quantity ? $from_quantity . ' - ' . $to_quantity : $from_quantity;
+
+            // Reemplazar "10 - +" con "10+"
+            $range = str_replace('- +', '+', $range);
+
+            $price = number_format($row['price'], 2); // Formato con centavos
+
+            echo '<tr>';
+            echo '<td>' . $range . '</td>';
+            echo '<td><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span>' . $price . '</bdi></span></td>';
+            echo '</tr>';
+        }
+
+        echo '</tbody>';
+        echo '</table>';
+        echo '<span class="wdp_pricing_table_footer"></span>';
+        echo '</div>';
+    }
+}
+
+
+// Mostrar la tabla de precios después del botón "Añadir al carrito"
+function display_quantity_pricing_table_after_add_to_cart()
+{
+    global $product;
+
+    echo '<div class="woocommerce-quantity-pricing">';
+    echo '<div class="wdp_pricing_table_container">';
+
+    // Mostrar el botón "Añadir al carrito"
+    do_action('woocommerce_after_add_to_cart_button');
+
+    // Mostrar la tabla de precios por cantidad
+    display_quantity_pricing_table();
+
+    echo '</div>';
+    echo '</div>';
+}
+add_action('woocommerce_after_add_to_cart_form', 'display_quantity_pricing_table_after_add_to_cart');
+
+
+// Scripts adicionales para la funcionalidad de agregar/eliminar filas
+function quantity_pricing_admin_scripts()
+{
+    echo '<script>
+        jQuery(document).ready(function($) {
+            // Agregar una nueva fila en la tabla de precios por cantidad
+            $(document).on("click", ".add_row_button_qty", function() {
+                var rowHtml, 
+                    rowId = Date.now();
+
+                rowHtml = \'<tr>\' +
+                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][from_quantity]"></td>\' +
+                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][to_quantity]"></td>\' +
+                    \'<td><input type="text" name="custom_price_table[\' + rowId + \'][price]"></td>\' +
+                    \'<td><button type="button" class="remove_row_button button">Eliminar</button></td>\' +
+                    \'</tr>\';
+                
+                $("#quantity_pricing_table tbody").append(rowHtml);
+            });
+
+            // Agregar una nueva fila en la tabla de precios especiales de usuarios
+            $(document).on("click", ".add_row_button_user", function() {
+                var rowHtml, 
+                    rowId = Date.now();
+
+                rowHtml = \'<tr>\' +
+                    \'<td><input type="text" name="user_prices_table[\' + rowId + \'][user_email]"></td>\' +
+                    \'<td><input type="text" name="user_prices_table[\' + rowId + \'][price]"></td>\' +
+                    \'<td><button type="button" class="remove_row_button button">Eliminar</button></td>\' +
+                    \'</tr>\';
+                
+                $("#user_prices_table tbody").append(rowHtml);
+            });
+
+            // Eliminar una fila de la tabla de precios por cantidad o precios especiales de usuarios
+            $(document).on("click", ".remove_row_button", function() {
+                $(this).closest("tr").remove();
+            });
+        });
+    </script>';
+}
+add_action('admin_footer', 'quantity_pricing_admin_scripts');
+
+
+
+// Estilos adicionales para la tabla de precios
+function quantity_pricing_styles()
+{
+    echo '<style>
         .bulk_table {
             margin-top: 20px;
         }
@@ -227,96 +332,33 @@ function display_quantity_pricing_table()
         .wdp_pricing_table th {
             background-color: #efefef;
         }
-    </style>
-        ';
-
-        echo '<div class="bulk_table">';
-        echo '<div class="wdp_pricing_table_caption" style="color: #1e73be; text-align: center; font-weight: bold; margin-bottom: 10px;">En base a la cantidad obtienes mejor precio.</div>';
-        echo '<table class="wdp_pricing_table">';
-        echo '<thead>';
-        echo '<tr>';
-        echo '<th>Piezas</th>';
-        echo '<th>Precio Pieza</th>';
-        echo '</tr>';
-        echo '</thead>';
-        echo '<tbody>';
-
-        foreach ($custom_price_table as $row) {
-            $from_quantity = $row['from_quantity'];
-            $to_quantity = $row['to_quantity'];
-
-            if ($to_quantity === '') {
-                $to_quantity = '+';
-            }
-
-            $range = $from_quantity !== $to_quantity ? $from_quantity . ' - ' . $to_quantity : $from_quantity;
-
-            // Replace "10 - +" with "10+"
-            $range = str_replace('- +', '+', $range);
-
-            $price = number_format($row['price'], 2); // Format with cents
-
-            echo '<tr>';
-            echo '<td>' . $range . '</td>';
-            echo '<td><span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">$</span>' . $price . '</bdi></span></td>';
-            echo '</tr>';
-        }
-
-        echo '</tbody>';
-        echo '</table>';
-        echo '<span class="wdp_pricing_table_footer"></span>';
-        echo '</div>';
-    }
+    </style>';
 }
-add_action('woocommerce_after_add_to_cart_button', 'display_quantity_pricing_table');
+add_action('wp_head', 'quantity_pricing_styles');
 
 
-
-// Enqueue the admin scripts
-// This function enqueues the necessary scripts for the admin area
-function enqueue_admin_scripts($hook)
-{
-    if ('post.php' !== $hook && 'post-new.php' !== $hook) {
-        return;
-    }
-
-    wp_enqueue_script('admin-scripts', plugin_dir_url(__FILE__) . 'admin-scripts.js', array('jquery'), '1.0', true);
-}
-add_action('admin_enqueue_scripts', 'enqueue_admin_scripts');
-
-// Enqueue the front-end styles
-// This function enqueues the necessary styles for the front-end
-function enqueue_frontend_styles()
-{
-    wp_enqueue_style('frontend-styles', plugin_dir_url(__FILE__) . 'frontend-styles.css');
-}
-add_action('wp_enqueue_scripts', 'enqueue_frontend_styles');
-
-
-// Adjust the price HTML to show the range of prices from the price table
-// This function adjusts the price HTML to show the range of prices from the price table
 function adjust_price_html($price, $product)
 {
     $custom_price_table = get_post_meta($product->get_id(), 'custom_price_table', true);
 
     if (!empty($custom_price_table)) {
-        // Sort the array by the price field
+        // ordenar el array por el campo de precio
         usort($custom_price_table, function ($a, $b) {
             return $a['price'] - $b['price'];
         });
 
-        // Get the highest price in the table as regular price
+        // obtener el precio más alto en la tabla como precio regular
         $regular_price = end($custom_price_table)['price'];
 
-        // Get the lowest price in the table
+        // obtener el precio más bajo en la tabla
         $lowest_price = $custom_price_table[0]['price'];
 
-        // Reformat the price string
+        // reformatear la cadena de precios
         if (is_product()) {
-            // On the product page, show "Regular Price - From Lowest Price"
+            // en la página del producto, mostrar "Precio Regular - Desde Precio Más Bajo"
             $price = sprintf('Desde %2$s - %1$s', wc_price($regular_price), wc_price($lowest_price));
         } else {
-            // On all other pages, just show "From Lowest Price"
+            // en todas las demás páginas, sólo mostrar "Desde Precio Más Bajo"
             $price = sprintf('Desde %1$s', wc_price($lowest_price));
         }
     }
@@ -325,14 +367,14 @@ function adjust_price_html($price, $product)
 }
 add_filter('woocommerce_get_price_html', 'adjust_price_html', 10, 2);
 
-// Modify the display of the subtotal in the cart
-// This function modifies the display of the subtotal in the cart
+
+// modifica la visualización del subtotal en el carrito
 function custom_cart_totals_subtotal($subtotal)
 {
     global $woocommerce;
     $cart = $woocommerce->cart;
 
-    // Calculate the regular cart subtotal
+    // Calcular el subtotal regular del carrito
     $total_regular_price = array_sum(
         array_map(
             function ($cart_item) {
@@ -342,7 +384,7 @@ function custom_cart_totals_subtotal($subtotal)
         )
     );
 
-    // Calculate the adjusted cart subtotal
+    // Calcular el subtotal ajustado del carrito
     $total_best_price = array_sum(
         array_map(
             function ($cart_item) {
@@ -361,11 +403,9 @@ function custom_cart_totals_subtotal($subtotal)
 add_filter('woocommerce_cart_subtotal', 'custom_cart_totals_subtotal', 10, 1);
 
 
-// Adjust the price in the mini cart based on the quantity and the price table
-// This function adjusts the price in the mini cart based on the quantity and the price table
-function adjust_minicart_price($price, $cart_item, $cart_item_key)
-{
+function adjust_minicart_price( $price, $cart_item, $cart_item_key ) {
     $product = $cart_item['data'];
+
     $custom_price_table = get_post_meta($product->get_id(), 'custom_price_table', true);
     $total_quantity = $cart_item['quantity'];
 
@@ -389,29 +429,21 @@ function adjust_minicart_price($price, $cart_item, $cart_item_key)
 }
 add_filter('woocommerce_cart_item_price', 'adjust_minicart_price', 10, 3);
 
-// Adjust the cart hash based on the quantity and the price table
-// This function adjusts the cart hash based on the quantity and the price table
-function my_custom_cart_hash($hash)
-{
-    if (!did_action('woocommerce_before_calculate_totals')) {
+
+function my_custom_cart_hash($hash) {
+    if ( ! did_action( 'woocommerce_before_calculate_totals' ) ) {
         adjust_price_based_on_quantity(WC()->cart);
     }
-    return hash('md5', wp_json_encode(wc()->cart->get_cart()));
+    return hash( 'md5', wp_json_encode( wc()->cart->get_cart() ) );
 }
 add_filter('woocommerce_cart_hash', 'my_custom_cart_hash', 10, 1);
 
-
-
-// Adjust the cart fragments based on the quantity and the price table
-// This function adjusts the cart fragments based on the quantity and the price table
-function my_custom_cart_fragments($fragments)
-{
+function my_custom_add_to_cart_fragment($fragments) {
     ob_start();
-    woocommerce_cart_totals();
-    $cart_totals = ob_get_clean();
-
-    $fragments['.woocommerce-cart-form__totals'] = $cart_totals;
-
+    woocommerce_mini_cart();
+    $fragments['div.widget_shopping_cart_content'] = ob_get_clean();
     return $fragments;
 }
-add_filter('woocommerce_update_order_review_fragments', 'my_custom_cart_fragments', 10, 1);
+add_filter('woocommerce_add_to_cart_fragments', 'my_custom_add_to_cart_fragment');
+
+
