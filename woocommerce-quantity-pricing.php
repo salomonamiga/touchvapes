@@ -3,7 +3,7 @@
 Plugin Name: WooCommerce Quantity Pricing
 Plugin URI: http://yourwebsite.com/
 Description: Adds quantity-based pricing to WooCommerce products.
-Version: 1.3
+Version: 1.4
 Author: TouchVapes
 Author URI: http://yourwebsite.com/
 */
@@ -101,6 +101,7 @@ add_action('woocommerce_product_data_panels', 'custom_product_panels');
 
 
 // Guardar los valores del campo de tabla de precios cuando se guarda el producto
+// Guardar los valores del campo de tabla de precios cuando se guarda el producto
 function save_user_prices_field($post_id)
 {
     if (isset($_POST['user_prices_table'])) {
@@ -123,8 +124,32 @@ function save_user_prices_field($post_id)
     } else {
         delete_post_meta($post_id, 'user_prices_table');
     }
+
+    if (isset($_POST['custom_price_table'])) {
+        $custom_price_table = $_POST['custom_price_table'];
+        $new_custom_price_table = array();
+
+        foreach ($custom_price_table as $row) {
+            $from_quantity = sanitize_text_field($row['from_quantity']);
+            $to_quantity = sanitize_text_field($row['to_quantity']);
+            $price = sanitize_text_field($row['price']);
+
+            if (!empty($from_quantity) || !empty($price)) {
+                $new_custom_price_table[] = array(
+                    'from_quantity' => $from_quantity,
+                    'to_quantity' => $to_quantity,
+                    'price' => $price,
+                );
+            }
+        }
+
+        update_post_meta($post_id, 'custom_price_table', $new_custom_price_table);
+    } else {
+        delete_post_meta($post_id, 'custom_price_table');
+    }
 }
 add_action('woocommerce_process_product_meta', 'save_user_prices_field');
+
 
 
 
